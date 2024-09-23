@@ -2,13 +2,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const registerForm = document.getElementById('registerForm');
   const loginForm = document.getElementById('loginForm');
 
+  const getFullPath = (path) => {
+    return window.basePath === '/' ? path : `${window.basePath}${path}`;
+  };
+
   registerForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const username = document.getElementById('registerUsername').value;
     const password = document.getElementById('registerPassword').value;
 
     try {
-      const response = await fetch('/register', {
+      const response = await fetch(getFullPath('/register'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const password = document.getElementById('loginPassword').value;
 
     try {
-      const response = await fetch('/login', {
+      const response = await fetch(getFullPath('/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -55,10 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('token', data.token);
 
       // Redirect to the dashboard page
-      window.location.href = '/dashboard.html';
+      window.location.href = getFullPath('/dashboard');
     } catch (error) {
       console.error('Error:', error);
       alert('Login failed!');
     }
   });
+
+  // Function to get token from local storage
+  const getToken = () => localStorage.getItem('token');
 });

@@ -7,10 +7,10 @@
   <title>Sample App | Dashboard</title>
   <!-- Bootstrap CSS -->
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="<%= basePath === '/' ? '/css/styles.css' : basePath + '/css/styles.css' %>">
   <style>
     body {
-      background-color: #f8f9fa;
+      background-color: #406bbc;
     }
 
     .container {
@@ -68,12 +68,18 @@
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
   <script>
+    window.basePath = '<%= basePath %>';
+
+    const getFullPath = (path) => {
+      return window.basePath === '/' ? path : `${window.basePath}${path}`;
+    };
+
     $(document).ready(function () {
       const token = localStorage.getItem('token');
 
       if (!token) {
         alert('You are not logged in!');
-        window.location.href = '/';
+        window.location.href = getFullPath('/');
         return;
       }
 
@@ -86,7 +92,7 @@
         const title = $('#taskTitle').val();
 
         $.ajax({
-          url: '/tasks',
+          url: getFullPath('/dashboard/tasks'),
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -107,7 +113,7 @@
       // Fetch tasks function
       function fetchTasks() {
         $.ajax({
-          url: '/tasks',
+          url: getFullPath('/dashboard/tasks'),
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -151,7 +157,7 @@
       // Complete task function
       function completeTask(taskId, taskItem) {
         $.ajax({
-          url: `/tasks/${taskId}/complete`,
+          url: getFullPath(`/dashboard/tasks/${taskId}/complete`),
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -169,7 +175,7 @@
       // Delete task function
       function deleteTask(taskId, taskItem) {
         $.ajax({
-          url: `/tasks/${taskId}`,
+          url: getFullPath(`/dashboard/tasks/${taskId}`),
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`

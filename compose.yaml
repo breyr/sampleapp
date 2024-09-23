@@ -8,6 +8,7 @@ services:
     environment:
       - DATABASE_URL=mysql://admin:root@db:3306/test_db
       - ACCESS_TOKEN_SECRET=aSDZfRrMMFz7qS82A8peEBAOZV9Bzx0n
+      - BASE_PATH=/app
     depends_on:
       - db
 
