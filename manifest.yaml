@@ -1,0 +1,204 @@
+# This file is just an example of how to deploy two versions of this application, obviously change secrets.
+# secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+type: Opaque
+stringData:
+  DATABASE_URL: mysql://admin:root@db:3306/test_db
+  ACCESS_TOKEN_SECRET: mytotallysafesecret
+  MYSQL_ROOT_PASSWORD: root
+  MYSQL_DATABASE: test_db
+  MYSQL_USER: admin
+  MYSQL_PASSWORD: root
+---
+# db-setup-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-setup-script
+data:
+  setup.sql: |
+    CREATE TABLE IF NOT EXISTS User (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS Task (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        completed BOOLEAN NOT NULL DEFAULT false,
+        userId INT,
+        FOREIGN KEY (userId) REFERENCES User(id) ON DELETE RESTRICT ON UPDATE CASCADE
+    );
+---
+# web-v1-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-v1-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-v1
+      version: 1.0.0
+  template:
+    metadata:
+      labels:
+        app: web-v1
+        version: 1.0.0
+    spec:
+      containers:
+        - name: webapp
+          image: breyr/sampleapp:v1
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DATABASE_URL
+            - name: ACCESS_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: ACCESS_TOKEN_SECRET
+---
+# web-v2-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-v2-dep
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-v2
+      version: 2.0.0
+  template:
+    metadata:
+      labels:
+        app: web-v2
+        version: 2.0.0
+    spec:
+      containers:
+        - name: webapp
+          image: breyr/sampleapp:v2 # Assuming v2 is the new version
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: DATABASE_URL
+            - name: ACCESS_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: ACCESS_TOKEN_SECRET
+---
+# web-v1-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-v1-svc
+spec:
+  selector:
+    app: web-v1
+    version: 1.0.0
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+---
+# web-v2-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-v2-svc
+spec:
+  selector:
+    app: web-v2
+    version: 2.0.0
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+---
+# db-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  selector:
+    app: db
+  ports:
+    - protocol: TCP
+      port: 3306
+---
+# db-deployment.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+spec:
+  serviceName: "db" # Required for StatefulSet
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+        - name: db
+          image: mysql:8
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MYSQL_DATABASE
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MYSQL_USER
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: MYSQL_PASSWORD
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/mysql
+            - name: setup-script
+              mountPath: /docker-entrypoint-initdb.d/setup.sql
+              subPath: setup.sql
+      volumes:
+        - name: setup-script
+          configMap:
+            name: db-setup-script
+  volumeClaimTemplates:
+    - metadata:
+        name: db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
