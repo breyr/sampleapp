@@ -8,6 +8,38 @@
   <!-- Bootstrap CSS -->
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+
+    .container {
+      background-color: #ffffff;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .task {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .task.completed .task-title {
+      text-decoration: line-through;
+      color: #6c757d;
+    }
+
+    .task button {
+      margin-left: 0.5rem;
+    }
+
+    .task-actions {
+      display: flex;
+      align-items: center;
+    }
+  </style>
 </head>
 
 <body>
@@ -83,25 +115,29 @@
           success: function (response) {
             $('#taskList').empty();
             response.forEach(task => {
-              const taskItem = $(`<li class="list-group-item task">${task.title}</li>`);
+              const taskItem = $(`
+                <li class="list-group-item task">
+                  <span class="task-title">${task.title}</span>
+                  <div class="task-actions">
+                    <button class="btn btn-success btn-sm">Complete</button>
+                    <button class="btn btn-danger btn-sm">Delete</button>
+                  </div>
+                </li>
+              `);
               if (task.completed) {
-                taskItem.addClass('completed');
+                taskItem.find('.task-title').addClass('completed');
               }
 
               // Add complete button
-              const completeButton = $('<button class="btn btn-success btn-sm float-right ml-2">Complete</button>');
-              completeButton.on('click', function () {
+              taskItem.find('.btn-success').on('click', function () {
                 completeTask(task.id, taskItem);
               });
 
               // Add delete button
-              const deleteButton = $('<button class="btn btn-danger btn-sm float-right">Delete</button>');
-              deleteButton.on('click', function () {
+              taskItem.find('.btn-danger').on('click', function () {
                 deleteTask(task.id, taskItem);
               });
 
-              taskItem.append(completeButton);
-              taskItem.append(deleteButton);
               $('#taskList').append(taskItem);
             });
           },
@@ -121,7 +157,7 @@
             'Authorization': `Bearer ${token}`
           },
           success: function (response) {
-            taskItem.addClass('completed');
+            taskItem.find('.task-title').addClass('completed');
           },
           error: function (error) {
             console.error('Error completing task:', error);
